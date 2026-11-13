@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "flarecheck"
+version = "0.1.0"
+description = "Offline food-symptom diary pattern checks with honest error control (information only, not medical advice)"
+readme = "README.md"
+license = {text = "Apache-2.0"}
+requires-python = ">=3.9"
+authors = [{name = "MV2, Munim, Inc.", email = "mv2@munimtech.com"}]
+
+[tool.setuptools]
+packages = ["flarecheck"]

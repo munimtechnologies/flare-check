@@ -1,0 +1,11 @@
+date,foods,score
+2026-01-01,oats;milk;coffee,3
+2026-01-02,eggs;bread;coffee,2
+2026-01-03,-,2
+2026-01-04,oats;milk,4
+2026-01-05,rice;chicken,3
+2026-01-06,bread;cheese;coffee,5
+2026-01-07,,4
+2026-01-08,oats;coffee,3
+2026-01-09,eggs;rice,2
+2026-01-10,milk;bread,4
