@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "flarecheck"
-version = "0.1.0"
+version = "0.2.0"
 description = "Offline food-symptom diary pattern checks with honest error control (information only, not medical advice)"
 readme = "README.md"
 license = {text = "Apache-2.0"}

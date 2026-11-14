@@ -3,7 +3,7 @@ import random
 import unittest
 
 from flarecheck.diary import parse_text
-from flarecheck.sim import (FOODS, config_name, grade, run_config, run_methods,
+from flarecheck.sim import (FOODS, METHODS, config_name, grade, run_config, run_methods,
                             simulate_diary, study_configs)
 
 TEXT = "date,foods,score\n2026-03-01,X,5\n2026-03-02,x,5\n" + "".join(
@@ -31,19 +31,25 @@ class TestSim(unittest.TestCase):
             self.assertAlmostEqual(eff.scores[i] - base.scores[i], 2.0 if ate else 0.0)
 
     def test_run_methods_hand_case(self):
+        # Legacy p = 1/4 (3 rotations), every-rotation p = 1/8, Welch and max-|t| undefined
+        # (no variance in either group): nothing reaches the alert level.
         d = parse_text(TEXT)
-        res = run_methods(d, ["x"], lags=(0,), min_exposed=2, min_unexposed=2, min_shift=2)
+        res = run_methods(d, ["x"], lags=(0,), min_exposed=2, min_unexposed=2)
         self.assertEqual(res["tests"], 1)
-        self.assertEqual(res["naive"], set())
-        self.assertEqual(res["t_bh"], set())
-        self.assertEqual(res["shift_bh"], set())
+        for m in METHODS:
+            self.assertEqual(res[m], set(), m)
 
     def test_configs(self):
         cs = study_configs()
-        self.assertEqual(len(cs), 24)
+        self.assertEqual(len(cs), 28)
         names = [config_name(c) for c in cs]
-        self.assertEqual(len(set(names)), 24)
+        self.assertEqual(len(set(names)), 28)
+        self.assertEqual(sum(1 for c in cs if c["kind"] == "null"), 20)
         self.assertIn("null-all-n60-phi0.6-habit0.0", names)
+        self.assertIn("null-suspects-n90-phi0.6-habit0.6", names)
+        self.assertIn("null-suspects-n90-phi0.6-habit0.8", names)
+        self.assertIn("power-all-n90-phi0.6-habit0.0", names)
+        self.assertIn("power-suspects-n60-phi0.6-habit0.0", names)
         self.assertIn("power-suspects-n90-phi0.6-habit0.0", names)
         self.assertEqual(len(FOODS), 20)
 
@@ -52,7 +58,7 @@ class TestSim(unittest.TestCase):
         row = run_config(c, 2, "1")
         self.assertEqual(row["name"], "power-suspects-n30-phi0.6-habit0.0")
         self.assertEqual(row["diaries"], 2)
-        for m in ("naive", "t_bh", "shift_bh"):
+        for m in METHODS:
             self.assertTrue(0.0 <= row[m + "_power"] <= 1.0)
             self.assertTrue(0.0 <= row[m + "_any"] <= 1.0)
 
@@ -61,25 +67,24 @@ class TestSim(unittest.TestCase):
         for c in study_configs():
             r = dict(c)
             r["name"] = config_name(c)
-            r["naive_any"] = 0.9
-            r["t_bh_any"] = 0.5
+            r["shift_bh_ms3_any"] = 0.2
             r["shift_bh_any"] = 0.08
-            r["shift_bh_power"] = 0.0
-            r["t_bh_power"] = 0.8
+            r["maxt_any"] = 0.07
+            r["maxt_power"] = 0.7
+            r["shift_bh_power"] = 0.9
             rows.append(r)
-        for r in rows:
-            if r["name"] == "power-suspects-n90-phi0.6-habit0.0":
-                r["shift_bh_power"] = 0.7
         g = grade(rows)
-        self.assertEqual(g["P1"], "PASS (0.9)")
-        self.assertEqual(g["P2"], "PASS (0.08)")
-        self.assertEqual(g["P3"], "PASS (0.5)")
-        self.assertEqual(g["P4"], "PASS (0.0)")
-        self.assertEqual(g["P5"], "PASS (0.7)")
-        self.assertEqual(g["P6"], "PASS (0.0)")
-        self.assertEqual(g["P7"], "PASS (0.8)")
-        rows[0]["shift_bh_any"] = 0.2
-        self.assertEqual(grade(rows)["P2"], "FAIL (0.2)")
+        self.assertEqual(g, {"R1": "PASS (0.2)", "R2": "PASS (0.08)", "R3": "PASS (0.07)",
+                             "R4": "PASS (0.7)", "R5": "PASS (0.7)", "R6": "PASS (0.2)",
+                             "R7": "PASS (0.9)"})
+        rows[0]["maxt_any"] = 0.2
+        for r in rows:
+            if r["name"] == "null-suspects-n90-phi0.6-habit0.6":
+                r["shift_bh_ms3_any"] = 0.1
+        g = grade(rows)
+        self.assertEqual(g["R1"], "FAIL (0.1)")
+        self.assertEqual(g["R3"], "FAIL (0.2)")
+        self.assertEqual(grade(rows[1:])["R2"], "NOT GRADED (missing)")
 
 
 if __name__ == "__main__":
